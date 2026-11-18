@@ -24,14 +24,16 @@ jobs:
           accept-android-sdk-licenses: true
           packages: 'platforms;android-33 build-tools;33.0.2 ndk;25.1.8937393'
 
-      - name: Create Project Files & Fix ABI Splits
+      - name: Create Complete Project Structure
         run: |
+          # 1. Создаем gradle.properties с поддержкой AndroidX
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           
+          # 2. Создаем структуру директорий
           mkdir -p app/src/main/cpp app/src/main/java/com/oxide/cheat
           
-          # CMakeLists.txt (поддержка обеих архитектур arm64 и armeabi-v7a)
+          # 3. CMakeLists.txt (поддержка обеих архитектур arm64 и armeabi-v7a)
           cat << 'EOF' > app/src/main/cpp/CMakeLists.txt
           cmake_minimum_required(VERSION 3.22.1)
           project("oxidecheat")
@@ -40,7 +42,7 @@ jobs:
           target_link_libraries(oxidecheat ${log-lib})
           EOF
 
-          # main.cpp
+          # 4. main.cpp (исходный код читера C++)
           cat << 'EOF' > app/src/main/cpp/main.cpp
           #include <jni.h>
           #include <android/log.h>
@@ -51,12 +53,12 @@ jobs:
           
           extern "C" JNIEXPORT jint JNICALL
           Java_com_oxide_cheat_MainActivity_nativeInit(JNIEnv* env, jobject thiz) {
-              LOGD("Oxide Cheat Initialized!");
+              LOGD("Oxide Cheat Initialized Successfully!");
               return 0;
           }
           EOF
 
-          # build.gradle с поддержкой universal apk (все абс/абби)
+          # 5. app/build.gradle (настройки приложения и ABI)
           cat << 'EOF' > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -75,20 +77,12 @@ jobs:
                       }
                   }
               }
-              splits {
-                  abi {
-                      enable false
-                      reset()
-                      include 'armeabi-v7a', 'arm64-v8a'
-                      universalApk true
-                  }
-              }
               externalNativeBuild { cmake { path 'src/main/cpp/CMakeLists.txt' } }
           }
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
 
-          # Root build.gradle
+          # 6. Корневой build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -97,13 +91,13 @@ jobs:
           allprojects { repositories { google(); mavenCentral() } }
           EOF
 
-          # settings.gradle
+          # 7. settings.gradle
           cat << 'EOF' > settings.gradle
           rootProject.name = "OxideCheat"
           include ':app'
           EOF
 
-          # AndroidManifest.xml
+          # 8. AndroidManifest.xml
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.oxide.cheat">
@@ -118,7 +112,7 @@ jobs:
           </manifest>
           EOF
 
-          # MainActivity.java
+          # 9. MainActivity.java
           cat << 'EOF' > app/src/main/java/com/oxide/cheat/MainActivity.java
           package com.oxide.cheat;
           import android.app.Activity;
@@ -135,7 +129,7 @@ jobs:
           }
           EOF
 
-      - name: Build Universal APK
+      - name: Build APK
         run: |
           gradle wrapper --gradle-version 8.2
           chmod +x gradlew
@@ -145,4 +139,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Oxide-Cheat-APK
-          path: app/build/outputs/apk/release/*universal*.apk
+          path: app/build/outputs/apk/release/*.apk
