@@ -18,25 +18,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
+      - name: Setup Android SDK & NDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
-
-      - name: Install NDK
-        run: |
-          sdkmanager "ndk;25.1.8937393"
+          packages: 'platforms;android-33 build-tools;33.0.2 ndk;25.1.8937393'
 
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew || echo "No gradlew found, using default gradle or NDK build"
+        run: chmod +x gradlew || echo "No gradlew"
 
-      - name: Build Release APK / Shared Library
+      - name: Build APK
         run: |
-          # Если проект использует ndk-build или gradle, сборка пойдет здесь
           if [ -f "gradlew" ]; then
             ./gradlew assembleRelease
           else
-            echo "Building via NDK directly..."
+            echo "Gradlew not found, check project structure."
           fi
 
       - name: Upload APK Artifact
