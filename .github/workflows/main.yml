@@ -34,4 +34,12 @@ jobs:
         with:
           name: Oxide-Cheat-APK
           path: app/build/outputs/apk/release/*.apk
+          - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+
+      - name: Install NDK
+        run: |
+          sdkmanager "ndk;25.1.8937393"
           
