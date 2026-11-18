@@ -30,10 +30,10 @@ jobs:
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           
-          # 2. Создаем структуру директорий
-          mkdir -p app/src/main/cpp app/src/main/java/com/oxide/cheat
+          # 2. Создаем структуру директорий под новый чистый пакет
+          mkdir -p app/src/main/cpp app/src/main/java/com/oxide/modmenu
           
-          # 3. CMakeLists.txt (поддержка обеих архитектур arm64 и armeabi-v7a)
+          # 3. CMakeLists.txt (поддержка архитектур arm64 и armeabi-v7a)
           cat << 'EOF' > app/src/main/cpp/CMakeLists.txt
           cmake_minimum_required(VERSION 3.22.1)
           project("oxidecheat")
@@ -52,20 +52,20 @@ jobs:
           #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
           
           extern "C" JNIEXPORT jint JNICALL
-          Java_com_oxide_cheat_MainActivity_nativeInit(JNIEnv* env, jobject thiz) {
-              LOGD("Oxide Cheat Initialized Successfully!");
+          Java_com_oxide_modmenu_MainActivity_nativeInit(JNIEnv* env, jobject thiz) {
+              LOGD("Oxide Mod Menu Initialized Successfully!");
               return 0;
           }
           EOF
 
-          # 5. app/build.gradle (настройки приложения и ABI)
+          # 5. app/build.gradle (новый уникальный applicationId)
           cat << 'EOF' > app/build.gradle
           plugins { id 'com.android.application' }
           android {
-              namespace 'com.oxide.cheat'
+              namespace 'com.oxide.modmenu'
               compileSdk 33
               defaultConfig {
-                  applicationId "com.oxide.cheat"
+                  applicationId "com.oxide.modmenu"
                   minSdk 21
                   targetSdk 33
                   versionCode 1
@@ -97,11 +97,11 @@ jobs:
           include ':app'
           EOF
 
-          # 8. AndroidManifest.xml
+          # 8. AndroidManifest.xml с новым пакетом
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.oxide.cheat">
-              <application android:label="Oxide Cheat" android:allowBackup="true" android:supportsRtl="true">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.oxide.modmenu">
+              <application android:label="Oxide Mod Menu" android:allowBackup="true" android:supportsRtl="true">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -112,9 +112,9 @@ jobs:
           </manifest>
           EOF
 
-          # 9. MainActivity.java
-          cat << 'EOF' > app/src/main/java/com/oxide/cheat/MainActivity.java
-          package com.oxide.cheat;
+          # 9. MainActivity.java с новым пакетом
+          cat << 'EOF' > app/src/main/java/com/oxide/modmenu/MainActivity.java
+          package com.oxide.modmenu;
           import android.app.Activity;
           import android.os.Bundle;
           import android.widget.TextView;
@@ -123,7 +123,7 @@ jobs:
               @Override protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   TextView tv = new TextView(this);
-                  tv.setText("Oxide Cheat Loaded Successfully!");
+                  tv.setText("Oxide Mod Menu Loaded Successfully!");
                   setContentView(tv);
               }
           }
@@ -138,5 +138,5 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Oxide-Cheat-APK
+          name: Oxide-ModMenu-APK
           path: app/build/outputs/apk/release/*.apk
