@@ -26,14 +26,14 @@ jobs:
 
       - name: Create Complete Project Structure
         run: |
-          # 1. Настройка gradle.properties для AndroidX
+          # 1. Настройка gradle.properties
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           
-          # 2. Создание структуры папок под уникальный пакет
+          # 2. Создание структуры папок
           mkdir -p app/src/main/cpp app/src/main/java/com/oxide/modmenu
           
-          # 3. CMakeLists.txt (поддержка 64-bit и 32-bit ABI для BlueStacks Pie)
+          # 3. CMakeLists.txt
           cat << 'EOF' > app/src/main/cpp/CMakeLists.txt
           cmake_minimum_required(VERSION 3.22.1)
           project("oxidecheat")
@@ -42,23 +42,21 @@ jobs:
           target_link_libraries(oxidecheat ${log-lib})
           EOF
 
-          # 4. main.cpp (исходный код чипа)
+          # 4. main.cpp
           cat << 'EOF' > app/src/main/cpp/main.cpp
           #include <jni.h>
           #include <android/log.h>
-          #include <cmath>
-          #include <vector>
           #define LOG_TAG "WormShadow"
           #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
           
           extern "C" JNIEXPORT jint JNICALL
           Java_com_oxide_modmenu_MainActivity_nativeInit(JNIEnv* env, jobject thiz) {
-              LOGD("Oxide Mod Menu Initialized on Pie 64-bit!");
+              LOGD("Oxide Mod Menu Initialized successfully!");
               return 0;
           }
           EOF
 
-          # 5. app/build.gradle
+          # 5. app/build.gradle (namespace задает пакет здесь)
           cat << 'EOF' > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -82,7 +80,7 @@ jobs:
           dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
 
-          # 6. Корневой build.gradle
+          # 6. build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -97,10 +95,10 @@ jobs:
           include ':app'
           EOF
 
-          # 8. AndroidManifest.xml
+          # 8. AndroidManifest.xml (ЧИСТЫЙ: без устаревшего package="")
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.apk.res.android" package="com.oxide.modmenu">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <application android:label="Oxide Mod Menu" android:allowBackup="true" android:supportsRtl="true">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
