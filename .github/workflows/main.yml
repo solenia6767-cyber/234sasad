@@ -24,15 +24,14 @@ jobs:
           accept-android-sdk-licenses: true
           packages: 'platforms;android-33 build-tools;33.0.2 ndk;25.1.8937393'
 
-      - name: Create gradle.properties and Project Files
+      - name: Create Project Files & Fix ABI Splits
         run: |
-          # Создаем gradle.properties с включенным useAndroidX
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
           
           mkdir -p app/src/main/cpp app/src/main/java/com/oxide/cheat
           
-          # CMakeLists.txt
+          # CMakeLists.txt (поддержка обеих архитектур arm64 и armeabi-v7a)
           cat << 'EOF' > app/src/main/cpp/CMakeLists.txt
           cmake_minimum_required(VERSION 3.22.1)
           project("oxidecheat")
@@ -41,7 +40,7 @@ jobs:
           target_link_libraries(oxidecheat ${log-lib})
           EOF
 
-          # main.cpp (ESP & Aimbot core)
+          # main.cpp
           cat << 'EOF' > app/src/main/cpp/main.cpp
           #include <jni.h>
           #include <android/log.h>
@@ -50,9 +49,6 @@ jobs:
           #define LOG_TAG "WormShadow"
           #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
           
-          struct Vector3 { float x, y, z; };
-          struct Vector2 { float x, y; };
-          
           extern "C" JNIEXPORT jint JNICALL
           Java_com_oxide_cheat_MainActivity_nativeInit(JNIEnv* env, jobject thiz) {
               LOGD("Oxide Cheat Initialized!");
@@ -60,7 +56,7 @@ jobs:
           }
           EOF
 
-          # build.gradle for app
+          # build.gradle с поддержкой universal apk (все абс/абби)
           cat << 'EOF' > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -68,11 +64,24 @@ jobs:
               compileSdk 33
               defaultConfig {
                   applicationId "com.oxide.cheat"
-                  minSdk 24
+                  minSdk 21
                   targetSdk 33
                   versionCode 1
                   versionName "1.0"
-                  externalNativeBuild { cmake { cppFlags "-std=c++17" } }
+                  externalNativeBuild {
+                      cmake {
+                          cppFlags "-std=c++17"
+                          abiFilters 'armeabi-v7a', 'arm64-v8a'
+                      }
+                  }
+              }
+              splits {
+                  abi {
+                      enable false
+                      reset()
+                      include 'armeabi-v7a', 'arm64-v8a'
+                      universalApk true
+                  }
               }
               externalNativeBuild { cmake { path 'src/main/cpp/CMakeLists.txt' } }
           }
@@ -98,7 +107,7 @@ jobs:
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.oxide.cheat">
-              <application android:label="Oxide Cheat">
+              <application android:label="Oxide Cheat" android:allowBackup="true" android:supportsRtl="true">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -120,13 +129,13 @@ jobs:
               @Override protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   TextView tv = new TextView(this);
-                  tv.setText("Oxide Cheat Loaded!");
+                  tv.setText("Oxide Cheat Loaded Successfully!");
                   setContentView(tv);
               }
           }
           EOF
 
-      - name: Build APK
+      - name: Build Universal APK
         run: |
           gradle wrapper --gradle-version 8.2
           chmod +x gradlew
@@ -136,4 +145,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Oxide-Cheat-APK
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/release/*universal*.apk
